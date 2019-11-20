@@ -5,7 +5,10 @@
 package main
 
 import (
+	"github.com/btcsuite/btcutil"
+	"io/ioutil"
 	"log"
+	"path/filepath"
 
 	"github.com/btcsuite/btcd/rpcclient"
 )
@@ -13,12 +16,19 @@ import (
 func main() {
 	// Connect to local bitcoin core RPC server using HTTP POST mode.
 	connCfg := &rpcclient.ConnConfig{
-		Host:         "localhost:8332",
-		User:         "yourrpcuser",
-		Pass:         "yourrpcpass",
-		HTTPPostMode: true, // Bitcoin core only supports HTTP POST mode
-		DisableTLS:   true, // Bitcoin core does not provide TLS by default
+		Host:         "127.0.0.1:8334",
+		User:         "Rennbon",
+		Pass:         "qwe123456",
+		HTTPPostMode: true,  // Bitcoin core only supports HTTP POST mode
+		DisableTLS:   false, // Bitcoin core does not provide TLS by default
 	}
+	// Connect to local btcd RPC server using websockets.
+	btcdHomeDir := btcutil.AppDataDir("six", false)
+	certs, err := ioutil.ReadFile(filepath.Join(btcdHomeDir, "rpc.cert"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	connCfg.Certificates = certs
 	// Notice the notification parameter is nil since notifications are
 	// not supported in HTTP POST mode.
 	client, err := rpcclient.New(connCfg, nil)

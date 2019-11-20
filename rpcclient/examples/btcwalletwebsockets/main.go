@@ -28,16 +28,16 @@ func main() {
 	}
 
 	// Connect to local btcwallet RPC server using websockets.
-	certHomeDir := btcutil.AppDataDir("btcwallet", false)
+	certHomeDir := btcutil.AppDataDir("six", false)
 	certs, err := ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
 	if err != nil {
 		log.Fatal(err)
 	}
 	connCfg := &rpcclient.ConnConfig{
-		Host:         "localhost:18332",
+		Host:         "localhost:8334",
 		Endpoint:     "ws",
-		User:         "yourrpcuser",
-		Pass:         "yourrpcpass",
+		User:         "Rennbon",
+		Pass:         "qwe123456",
 		Certificates: certs,
 	}
 	client, err := rpcclient.New(connCfg, &ntfnHandlers)

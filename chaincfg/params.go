@@ -225,7 +225,7 @@ type Params struct {
 var MainNetParams = Params{
 	Name:        "mainnet",
 	Net:         wire.MainNet,
-	DefaultPort: "15333",
+	DefaultPort: "13333",
 	DNSSeeds:    []DNSSeed{},
 
 	// Chain parameters

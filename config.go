@@ -432,6 +432,10 @@ func loadConfig() (*config, []string, error) {
 		Generate:             defaultGenerate,
 		TxIndex:              defaultTxIndex,
 		AddrIndex:            defaultAddrIndex,
+
+		//add for test
+		RPCUser: "Rennbon",
+		RPCPass: "qwe123456",
 	}
 
 	// Service options which are only added on Windows.
