@@ -35,9 +35,9 @@ func TestBlockHeader(t *testing.T) {
 		t.Errorf("NewBlockHeader: wrong merkle root - got %v, want %v",
 			spew.Sprint(bh.MerkleRoot), spew.Sprint(merkleHash))
 	}
-	if bh.Bits != bits {
+	if bh.ScoopNum != bits {
 		t.Errorf("NewBlockHeader: wrong bits - got %v, want %v",
-			bh.Bits, bits)
+			bh.ScoopNum, bits)
 	}
 	if bh.Nonce != nonce {
 		t.Errorf("NewBlockHeader: wrong nonce - got %v, want %v",
@@ -58,7 +58,7 @@ func TestBlockHeaderWire(t *testing.T) {
 		PrevBlock:  mainNetGenesisHash,
 		MerkleRoot: mainNetGenesisMerkleRoot,
 		Timestamp:  time.Unix(0x495fab29, 0), // 2009-01-03 12:15:05 -0600 CST
-		Bits:       bits,
+		ScoopNum:   bits,
 		Nonce:      nonce,
 	}
 
@@ -197,7 +197,7 @@ func TestBlockHeaderSerialize(t *testing.T) {
 		PrevBlock:  mainNetGenesisHash,
 		MerkleRoot: mainNetGenesisMerkleRoot,
 		Timestamp:  time.Unix(0x495fab29, 0), // 2009-01-03 12:15:05 -0600 CST
-		Bits:       bits,
+		ScoopNum:   bits,
 		Nonce:      nonce,
 	}
 

@@ -34,9 +34,9 @@ type BlockHeader struct {
 	Timestamp time.Time
 
 	// Difficulty target for the block.
-	Bits uint32
+	ScoopNum uint32
 
-	// Nonce used to generate the block.
+	// Nonce used to generate the block. 替换为POC nonce
 	Nonce uint32
 }
 
@@ -96,7 +96,7 @@ func (h *BlockHeader) Serialize(w io.Writer) error {
 // block hash, merkle root hash, difficulty bits, and nonce used to generate the
 // block with defaults for the remaining fields.
 func NewBlockHeader(version int32, prevHash, merkleRootHash *chainhash.Hash,
-	bits uint32, nonce uint32) *BlockHeader {
+	scoop uint32, nonce uint32) *BlockHeader {
 
 	// Limit the timestamp to one second precision since the protocol
 	// doesn't support better.
@@ -105,7 +105,7 @@ func NewBlockHeader(version int32, prevHash, merkleRootHash *chainhash.Hash,
 		PrevBlock:  *prevHash,
 		MerkleRoot: *merkleRootHash,
 		Timestamp:  time.Unix(time.Now().Unix(), 0),
-		Bits:       bits,
+		ScoopNum:   scoop,
 		Nonce:      nonce,
 	}
 }
@@ -115,7 +115,7 @@ func NewBlockHeader(version int32, prevHash, merkleRootHash *chainhash.Hash,
 // decoding from the wire.
 func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
 	return readElements(r, &bh.Version, &bh.PrevBlock, &bh.MerkleRoot,
-		(*uint32Time)(&bh.Timestamp), &bh.Bits, &bh.Nonce)
+		(*uint32Time)(&bh.Timestamp), &bh.ScoopNum, &bh.Nonce)
 }
 
 // writeBlockHeader writes a bitcoin block header to w.  See Serialize for
@@ -124,5 +124,5 @@ func readBlockHeader(r io.Reader, pver uint32, bh *BlockHeader) error {
 func writeBlockHeader(w io.Writer, pver uint32, bh *BlockHeader) error {
 	sec := uint32(bh.Timestamp.Unix())
 	return writeElements(w, bh.Version, &bh.PrevBlock, &bh.MerkleRoot,
-		sec, bh.Bits, bh.Nonce)
+		sec, bh.ScoopNum, bh.Nonce)
 }

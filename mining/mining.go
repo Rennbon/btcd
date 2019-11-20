@@ -863,7 +863,7 @@ mempoolLoop:
 		PrevBlock:  best.Hash,
 		MerkleRoot: *merkles[len(merkles)-1],
 		Timestamp:  ts,
-		Bits:       reqDifficulty,
+		ScoopNum:   reqDifficulty,
 	}
 	for _, tx := range blockTxns {
 		if err := msgBlock.AddTransaction(tx.MsgTx()); err != nil {
@@ -883,7 +883,7 @@ mempoolLoop:
 	log.Debugf("Created new block template (%d transactions, %d in "+
 		"fees, %d signature operations cost, %d weight, target difficulty "+
 		"%064x)", len(msgBlock.Transactions), totalFees, blockSigOpCost,
-		blockWeight, blockchain.CompactToBig(msgBlock.Header.Bits))
+		blockWeight, blockchain.CompactToBig(msgBlock.Header.ScoopNum))
 
 	return &BlockTemplate{
 		Block:             &msgBlock,
@@ -914,7 +914,7 @@ func (g *BlkTmplGenerator) UpdateBlockTime(msgBlock *wire.MsgBlock) error {
 		if err != nil {
 			return err
 		}
-		msgBlock.Header.Bits = difficulty
+		msgBlock.Header.ScoopNum = difficulty
 	}
 
 	return nil

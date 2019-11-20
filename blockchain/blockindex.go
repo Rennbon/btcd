@@ -108,9 +108,9 @@ type blockNode struct {
 func initBlockNode(node *blockNode, blockHeader *wire.BlockHeader, parent *blockNode) {
 	*node = blockNode{
 		hash:       blockHeader.BlockHash(),
-		workSum:    CalcWork(blockHeader.Bits),
+		workSum:    CalcWork(blockHeader.ScoopNum),
 		version:    blockHeader.Version,
-		bits:       blockHeader.Bits,
+		bits:       blockHeader.ScoopNum,
 		nonce:      blockHeader.Nonce,
 		timestamp:  blockHeader.Timestamp.Unix(),
 		merkleRoot: blockHeader.MerkleRoot,
@@ -145,7 +145,7 @@ func (node *blockNode) Header() wire.BlockHeader {
 		PrevBlock:  *prevHash,
 		MerkleRoot: node.merkleRoot,
 		Timestamp:  time.Unix(node.timestamp, 0),
-		Bits:       node.bits,
+		ScoopNum:   node.bits,
 		Nonce:      node.nonce,
 	}
 }

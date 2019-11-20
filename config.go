@@ -34,12 +34,12 @@ import (
 )
 
 const (
-	defaultConfigFilename        = "btcd.conf"
+	defaultConfigFilename        = "six.conf"
 	defaultDataDirname           = "data"
 	defaultLogLevel              = "info"
 	defaultLogDirname            = "logs"
-	defaultLogFilename           = "btcd.log"
-	defaultMaxPeers              = 125
+	defaultLogFilename           = "six.log"
+	defaultMaxPeers              = 1
 	defaultBanDuration           = time.Hour * 24
 	defaultBanThreshold          = 100
 	defaultConnectTimeout        = time.Second * 30
@@ -67,7 +67,7 @@ const (
 )
 
 var (
-	defaultHomeDir     = btcutil.AppDataDir("btcd", false)
+	defaultHomeDir     = btcutil.AppDataDir("six", false)
 	defaultConfigFile  = filepath.Join(defaultHomeDir, defaultConfigFilename)
 	defaultDataDir     = filepath.Join(defaultHomeDir, defaultDataDirname)
 	knownDbTypes       = database.SupportedDrivers()
@@ -498,9 +498,11 @@ func loadConfig() (*config, []string, error) {
 	}
 
 	// Don't add peers from the config file when in regression test mode.
-	if preCfg.RegressionTest && len(cfg.AddPeers) > 0 {
+	/*if preCfg.RegressionTest && len(cfg.AddPeers) > 0 {
 		cfg.AddPeers = nil
-	}
+	}*/
+	//simple peer
+	cfg.AddPeers = nil
 
 	// Parse command line options again to ensure they take precedence.
 	remainingArgs, err := parser.Parse()
@@ -692,6 +694,7 @@ func loadConfig() (*config, []string, error) {
 	// Connect means no DNS seeding.
 	if len(cfg.ConnectPeers) > 0 {
 		cfg.DisableDNSSeed = true
+		fmt.Println("connect peers:", cfg.ConnectPeers)
 	}
 
 	// Add the default listener if none were specified. The default
@@ -701,6 +704,7 @@ func loadConfig() (*config, []string, error) {
 		cfg.Listeners = []string{
 			net.JoinHostPort("", activeNetParams.DefaultPort),
 		}
+		fmt.Println("listeners:", cfg.Listeners)
 	}
 
 	// Check to make sure limited and admin users don't have the same username
