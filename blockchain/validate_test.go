@@ -140,7 +140,7 @@ func TestCheckConnectBlockTemplate(t *testing.T) {
 
 	// Invalid block building on chain tip should fail to connect.
 	invalidBlock := *blocks[4].MsgBlock()
-	invalidBlock.Header.Bits--
+	invalidBlock.Header.ScoopNum--
 	err = chain.CheckConnectBlockTemplate(btcutil.NewBlock(&invalidBlock))
 	if err == nil {
 		t.Fatal("CheckConnectBlockTemplate: Did not received expected error " +
@@ -252,7 +252,7 @@ var Block100000 = wire.MsgBlock{
 			0xef, 0xb5, 0xa4, 0xac, 0x42, 0x47, 0xe9, 0xf3,
 		}), // f3e94742aca4b5ef85488dc37c06c3282295ffec960994b2c0d5ac2a25a95766
 		Timestamp: time.Unix(1293623863, 0), // 2010-12-29 11:57:43 +0000 UTC
-		Bits:      0x1b04864c,               // 453281356
+		ScoopNum:  0x1b04864c,               // 453281356
 		Nonce:     0x10572b0f,               // 274148111
 	},
 	Transactions: []*wire.MsgTx{

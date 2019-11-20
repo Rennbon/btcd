@@ -377,7 +377,7 @@ func newFakeNode(parent *blockNode, blockVersion int32, bits uint32, timestamp t
 	header := &wire.BlockHeader{
 		Version:   blockVersion,
 		PrevBlock: parent.hash,
-		Bits:      bits,
+		ScoopNum:  bits,
 		Timestamp: timestamp,
 	}
 	return newBlockNode(header, parent)

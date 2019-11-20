@@ -57,7 +57,7 @@ const (
 	blockMaxSizeMax              = blockchain.MaxBlockBaseSize - 1000
 	blockMaxWeightMin            = 4000
 	blockMaxWeightMax            = blockchain.MaxBlockWeight - 4000
-	defaultGenerate              = false
+	defaultGenerate              = true
 	defaultMaxOrphanTransactions = 100
 	defaultMaxOrphanTxSize       = 100000
 	defaultSigCacheMaxSize       = 100000
@@ -432,10 +432,10 @@ func loadConfig() (*config, []string, error) {
 		Generate:             defaultGenerate,
 		TxIndex:              defaultTxIndex,
 		AddrIndex:            defaultAddrIndex,
-
 		//add for test
-		RPCUser: "Rennbon",
-		RPCPass: "qwe123456",
+		RPCUser:     "Rennbon",
+		RPCPass:     "qwe123456",
+		MiningAddrs: []string{"1KfCAUniHvbzw5zr7NRmUr11JMWMSz6R5z"},
 	}
 
 	// Service options which are only added on Windows.

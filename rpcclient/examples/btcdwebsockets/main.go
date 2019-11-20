@@ -61,7 +61,7 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("Block count: %d", blockCount)
-
+	hash, err := client.Generate(1)
 	// For this example gracefully shutdown the client after 10 seconds.
 	// Ordinarily when to shutdown the client is highly application
 	// specific.
@@ -72,6 +72,7 @@ func main() {
 		log.Println("Client shutdown complete.")
 	})
 
+	log.Println(hash, err)
 	// Wait until the client either shuts down gracefully (or the user
 	// terminates the process with Ctrl+C).
 	client.WaitForShutdown()

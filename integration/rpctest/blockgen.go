@@ -188,7 +188,7 @@ func CreateBlock(prevBlock *btcutil.Block, inclusionTxs []*btcutil.Tx,
 		PrevBlock:  *prevHash,
 		MerkleRoot: *merkles[len(merkles)-1],
 		Timestamp:  ts,
-		Bits:       net.PowLimitBits,
+		ScoopNum:   net.PowLimitBits,
 	}
 	for _, tx := range blockTxns {
 		if err := block.AddTransaction(tx.MsgTx()); err != nil {

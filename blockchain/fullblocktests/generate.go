@@ -330,7 +330,7 @@ func solveBlock(header *wire.BlockHeader) bool {
 
 	// solver accepts a block header and a nonce range to test. It is
 	// intended to be run as a goroutine.
-	targetDifficulty := blockchain.CompactToBig(header.Bits)
+	targetDifficulty := blockchain.CompactToBig(header.ScoopNum)
 	quit := make(chan bool)
 	results := make(chan sbResult)
 	solver := func(hdr wire.BlockHeader, startNonce, stopNonce uint32) {
@@ -513,7 +513,7 @@ func (g *testGenerator) nextBlock(blockName string, spend *spendableOut, mungers
 			Version:    1,
 			PrevBlock:  g.tip.BlockHash(),
 			MerkleRoot: calcMerkleRoot(txns),
-			Bits:       g.params.PowLimitBits,
+			ScoopNum:   g.params.PowLimitBits,
 			Timestamp:  ts,
 			Nonce:      0, // To be solved.
 		},
@@ -1482,7 +1482,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	//                 \-> b49(14)
 	g.setTip("b43")
 	g.nextBlock("b49", outs[14], func(b *wire.MsgBlock) {
-		b.Header.Bits--
+		b.Header.ScoopNum--
 	})
 	rejected(blockchain.ErrUnexpectedDifficulty)
 
@@ -1497,7 +1497,7 @@ func Generate(includeLargeReorg bool) (tests [][]TestInstance, err error) {
 	// involves an unsolvable block.
 	{
 		origHash := b49a.BlockHash()
-		b49a.Header.Bits = 0x01810000 // -1 in compact form.
+		b49a.Header.ScoopNum = 0x01810000 // -1 in compact form.
 		g.updateBlockState("b49a", origHash, "b49a", b49a)
 	}
 	rejected(blockchain.ErrUnexpectedDifficulty)
