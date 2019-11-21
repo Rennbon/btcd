@@ -160,23 +160,32 @@ type SyncManager struct {
 	txMemPool      *mempool.TxPool
 	chainParams    *chaincfg.Params
 	progressLogger *blockProgressLogger
-	msgChan        chan interface{}
+	msgChan        chan interface{} //将p2p连接中接收到的数据传递给blockHandler函数进行处理
 	wg             sync.WaitGroup
 	quit           chan struct{}
 
 	// These fields should only be accessed from the blockHandler thread
-	rejectedTxns     map[chainhash.Hash]struct{}
-	requestedTxns    map[chainhash.Hash]struct{}
-	requestedBlocks  map[chainhash.Hash]struct{}
-	syncPeer         *peerpkg.Peer
+	rejectedTxns  map[chainhash.Hash]struct{}
+	requestedTxns map[chainhash.Hash]struct{}
+	//记录哪些区块处于"requested"状态，每次发出一个获取区块的请求前，先将该区块的hash加入
+	//到requestedBlocks中；每次收到区块后，将该区块的hash从requestedBlocks中删除
+	requestedBlocks map[chainhash.Hash]struct{}
+	//用于标识节点（peer A）正在用于数据同步的 peer B.任何时刻，只存在一个用于同步的syncPeer.
+	//每次会选出最佳的peer B赋值给syncPeer,且在peer B失去连接等情况发生时，syncPeer会被切换为其他peer
+	syncPeer *peerpkg.Peer
+	//用于记录所有peer的同步状态。因为syncPeer会在不同peer之间切换，需要记录下来跟每个peer进行数据同步的状态
 	peerStates       map[*peerpkg.Peer]*peerSyncState
 	lastProgressTime time.Time
 
 	// The following fields are used for headers-first mode.
 	headersFirstMode bool
-	headerList       *list.List
-	startHeader      *list.Element
-	nextCheckpoint   *chaincfg.Checkpoint
+	//只在headersFirstMode下有意义。由于在headersFirstMode模式下，headers和blocks都是按阶段下载的。checkpoint
+	//将所有的区块分成若干个区间，每个阶段下载其中一个区块的header(block),完后成再下载下一个区间
+	headerList *list.List
+	//只在headersFirstMode下有意义。startHeader标识当前正在处理的checkpoint区间中，还未发出block获取请求的第一个header
+	startHeader *list.Element
+	//只在headersFirstMode下有意义。nextCheckpoint标识当前正在处理的checkpoint区间的下边界
+	nextCheckpoint *chaincfg.Checkpoint
 
 	// An optional fee estimator.
 	feeEstimator *mempool.FeeEstimator
@@ -625,6 +634,7 @@ func (sm *SyncManager) current() bool {
 	return true
 }
 
+// ☀️☀️☀️☀️☀️ to save block into db
 // handleBlockMsg handles block messages from all peers.
 func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 	peer := bmsg.peer
@@ -681,7 +691,7 @@ func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 	delete(sm.requestedBlocks, *blockHash)
 
 	// Process the block to include validation, best chain selection, orphan
-	// handling, etc.
+	// handling, etc. 该函数完成了区块处理最主要的功能，包括：区块数据的验证、处理orphan区块、将区块插入到链中、基于新插入的区块判断是否需要reorganize最长链
 	_, isOrphan, err := sm.chain.ProcessBlock(bmsg.block, behaviorFlags)
 	if err != nil {
 		// When the error is a rule error, it means the block was simply
@@ -788,6 +798,9 @@ func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 	// This is headers-first mode, so if the block is not a checkpoint
 	// request more blocks using the header list when the request queue is
 	// getting short.
+	// 如果当前区块不是checkpoint区块，且当前区间中仍有未发出block获取请求的区块，
+	// 且已发出获取请求但未接收到响应的区块个数小于minInFlightBlocks，
+	// 继续调用fetchHeaderBlocks函数发出新的区块请求
 	if !isCheckpointBlock {
 		if sm.startHeader != nil &&
 			len(state.requestedBlocks) < minInFlightBlocks {
@@ -800,6 +813,7 @@ func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 	// there is a next checkpoint, get the next round of headers by asking
 	// for headers starting from the block after this one up to the next
 	// checkpoint.
+	//且当前区块是checkpoint区块，且存在下一个checkpoint，说明这一个区间的header和block下载已经完成了，可以开始下一个区间的下载了
 	prevHeight := sm.nextCheckpoint.Height
 	prevHash := sm.nextCheckpoint.Hash
 	sm.nextCheckpoint = sm.findNextHeaderCheckpoint(prevHeight)
@@ -820,6 +834,7 @@ func (sm *SyncManager) handleBlockMsg(bmsg *blockMsg) {
 	// This is headers-first mode, the block is a checkpoint, and there are
 	// no more checkpoints, so switch to normal mode by requesting blocks
 	// from the block after this one up to the end of the chain (zero hash).
+	//且当前区块是checkpoint区块，且不存在下一个checkpoint，则切换到正常的区块下载模式 (非headersFirstMode模式)
 	sm.headersFirstMode = false
 	sm.headerList.Init()
 	log.Infof("Reached the final checkpoint -- switching to normal mode")
@@ -1268,7 +1283,7 @@ func (sm *SyncManager) limitMap(m map[chainhash.Hash]struct{}, limit int) {
 // from the peer handlers so the block (MsgBlock) messages are handled by a
 // single thread without needing to lock memory data structures.  This is
 // important because the sync manager controls which blocks are needed and how
-// the fetching should proceed.
+// the fetching should proceed. ☀️☀️☀️☀️☀️
 func (sm *SyncManager) blockHandler() {
 	stallTicker := time.NewTicker(stallSampleInterval)
 	defer stallTicker.Stop()
@@ -1278,21 +1293,21 @@ out:
 		select {
 		case m := <-sm.msgChan:
 			switch msg := m.(type) {
-			case *newPeerMsg:
+			case *newPeerMsg: //OnVersion[server.go] -> NewPeer [manager.go] -> here
 				sm.handleNewPeerMsg(msg.peer)
 
-			case *txMsg:
+			case *txMsg: //交易信息
 				sm.handleTxMsg(msg)
 				msg.reply <- struct{}{}
 
-			case *blockMsg:
+			case *blockMsg: //下载的块消息 并持久化
 				sm.handleBlockMsg(msg)
 				msg.reply <- struct{}{}
 
-			case *invMsg:
+			case *invMsg: //区块和交易的哈希值
 				sm.handleInvMsg(msg)
 
-			case *headersMsg:
+			case *headersMsg: //header消息
 				sm.handleHeadersMsg(msg)
 
 			case *donePeerMsg:
@@ -1305,7 +1320,7 @@ out:
 				}
 				msg.reply <- peerID
 
-			case processBlockMsg:
+			case processBlockMsg: //挖到新块
 				_, isOrphan, err := sm.chain.ProcessBlock(
 					msg.block, msg.flags)
 				if err != nil {

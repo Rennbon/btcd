@@ -625,7 +625,7 @@ func (sp *serverPeer) OnHeaders(_ *peer.Peer, msg *wire.MsgHeaders) {
 }
 
 // handleGetData is invoked when a peer receives a getdata bitcoin message and
-// is used to deliver block and transaction information.
+// is used to deliver block and transaction information. ☀️☀️☀️☀️☀️
 func (sp *serverPeer) OnGetData(_ *peer.Peer, msg *wire.MsgGetData) {
 	numAdded := 0
 	notFound := wire.NewMsgNotFound()
@@ -1411,7 +1411,7 @@ func (s *server) pushTxMsg(sp *serverPeer, hash *chainhash.Hash, doneChan chan<-
 }
 
 // pushBlockMsg sends a block message for the provided block hash to the
-// connected peer.  An error is returned if the block hash is not known.
+// connected peer.  An error is returned if the block hash is not known.    * once per block
 func (s *server) pushBlockMsg(sp *serverPeer, hash *chainhash.Hash, doneChan chan<- struct{},
 	waitChan <-chan struct{}, encoding wire.MessageEncoding) error {
 
@@ -1470,7 +1470,7 @@ func (s *server) pushBlockMsg(sp *serverPeer, hash *chainhash.Hash, doneChan cha
 		invMsg := wire.NewMsgInvSizeHint(1)
 		iv := wire.NewInvVect(wire.InvTypeBlock, &best.Hash)
 		invMsg.AddInvVect(iv)
-		sp.QueueMessage(invMsg, doneChan)
+		sp.QueueMessage(invMsg, doneChan) //once per block
 		sp.continueHash = nil
 	}
 	return nil
@@ -1973,11 +1973,12 @@ func disconnectPeer(peerList map[int32]*serverPeer, compareFunc func(*serverPeer
 	return false
 }
 
+//☀️☀️☀️☀️☀️  call method in peer.go and exec in server.go
 // newPeerConfig returns the configuration for the given serverPeer.
 func newPeerConfig(sp *serverPeer) *peer.Config {
 	return &peer.Config{
 		Listeners: peer.MessageListeners{
-			OnVersion:      sp.OnVersion,
+			OnVersion:      sp.OnVersion, //
 			OnVerAck:       sp.OnVerAck,
 			OnMemPool:      sp.OnMemPool,
 			OnTx:           sp.OnTx,
@@ -2052,7 +2053,7 @@ func (s *server) outboundPeerConnected(c *connmgr.ConnReq, conn net.Conn) {
 	sp.Peer = p
 	sp.connReq = c
 	sp.isWhitelisted = isWhitelisted(conn.RemoteAddr())
-	sp.AssociateConnection(conn)
+	sp.AssociateConnection(conn) //启动peer的变量
 	go s.peerDoneHandler(sp)
 }
 
@@ -2079,7 +2080,7 @@ func (s *server) peerDoneHandler(sp *serverPeer) {
 
 // peerHandler is used to handle peer operations such as adding and removing
 // peers to and from the server, banning peers, and broadcasting messages to
-// peers.  It must be run in a goroutine.
+// peers.  It must be run in a goroutine. ☀️☀️☀️☀️☀️
 func (s *server) peerHandler() {
 	// Start the address manager and sync manager, both of which are needed
 	// by peers.  This is done here since their lifecycle is closely tied
@@ -2335,9 +2336,10 @@ func (s *server) Start() {
 
 		// Start the rebroadcastHandler, which ensures user tx received by
 		// the RPC server are rebroadcast until being included in a block.
+		//确保用户提交的tx 上链
 		go s.rebroadcastHandler()
 
-		s.rpcServer.Start()
+		s.rpcServer.Start() //开启http和websocket请求
 	}
 
 	// Start the CPU miner if generation is enabled.

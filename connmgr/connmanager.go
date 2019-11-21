@@ -48,7 +48,7 @@ const (
 	ConnPending ConnState = iota
 	ConnFailing
 	ConnCanceled
-	ConnEstablished
+	ConnEstablished //已确认
 	ConnDisconnected
 )
 
@@ -221,10 +221,11 @@ func (cm *ConnManager) handleFailedConn(c *ConnReq) {
 
 // connHandler handles all connection related requests.  It must be run as a
 // goroutine.
-//
-// The connection handler makes sure that we maintain a pool of active outbound
+// ☀️☀️☀️☀️☀️
+// The connection handler makes sure that we maintain（维护） a pool of active outbound
 // connections so that we remain connected to the network.  Connection requests
 // are processed and mapped by their assigned ids.
+// 开启监听handleConnected与handleDisconnected服务，connReq链接成功的去调用OnConnection，由outboundPeerConnected处理请求
 func (cm *ConnManager) connHandler() {
 
 	var (
@@ -241,13 +242,14 @@ out:
 		select {
 		case req := <-cm.requests:
 			switch msg := req.(type) {
-
+			//其主要将conn变量的状态更新后加入到pending变量中
 			case registerPending:
 				connReq := msg.c
 				connReq.updateState(ConnPending)
 				pending[msg.c.id] = connReq
 				close(msg.done)
-
+			//其首先也是对conn变量的状态进行了更新，将conn加入到conns变量中，并从pending中删除；然后利用OnConnection函数进行连接后的处理
+			//OnConnection函数也是在server.go文件的newServer中赋值的
 			case handleConnected:
 				connReq := msg.c
 
@@ -357,7 +359,7 @@ out:
 }
 
 // NewConnReq creates a new connection request and connects to the
-// corresponding address.
+// corresponding address.  连接线上节点
 func (cm *ConnManager) NewConnReq() {
 	if atomic.LoadInt32(&cm.stop) != 0 {
 		return
@@ -487,7 +489,7 @@ func (cm *ConnManager) Remove(id uint64) {
 }
 
 // listenHandler accepts incoming connections on a given listener.  It must be
-// run as a goroutine.
+// run as a goroutine. 	//OnAccept开启服务，由inboundPeerConnected处理请求
 func (cm *ConnManager) listenHandler(listener net.Listener) {
 	log.Infof("Server listening on %s", listener.Addr())
 	for atomic.LoadInt32(&cm.stop) == 0 {
@@ -499,6 +501,7 @@ func (cm *ConnManager) listenHandler(listener net.Listener) {
 			}
 			continue
 		}
+
 		go cm.cfg.OnAccept(conn)
 	}
 
@@ -515,19 +518,19 @@ func (cm *ConnManager) Start() {
 
 	log.Trace("Connection manager started")
 	cm.wg.Add(1)
-	go cm.connHandler()
+	go cm.connHandler() //对所有的主动连接进行管理
 
 	// Start all the listeners so long as the caller requested them and
 	// provided a callback to be invoked when connections are accepted.
 	if cm.cfg.OnAccept != nil {
 		for _, listner := range cm.cfg.Listeners {
 			cm.wg.Add(1)
-			go cm.listenHandler(listner)
+			go cm.listenHandler(listner) //被动接受其他节点的连接
 		}
 	}
 
 	for i := atomic.LoadUint64(&cm.connReqCount); i < uint64(cm.cfg.TargetOutbound); i++ {
-		go cm.NewConnReq()
+		go cm.NewConnReq() //主动发起与其他节点连接
 	}
 }
 

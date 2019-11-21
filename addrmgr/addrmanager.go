@@ -31,19 +31,19 @@ import (
 // peers on the bitcoin network.
 type AddrManager struct {
 	mtx            sync.Mutex
-	peersFile      string
+	peersFile      string //保存在文件中的连接节点信息，用于节点重启时能快速建立连接，默认路径为 /data/mainnet/peers.json
 	lookupFunc     func(string) ([]net.IP, error)
 	rand           *rand.Rand
 	key            [32]byte
-	addrIndex      map[string]*KnownAddress // address key to ka for all addrs.
-	addrNew        [newBucketCount]map[string]*KnownAddress
-	addrTried      [triedBucketCount]*list.List
+	addrIndex      map[string]*KnownAddress                 // address key to ka for all addrs.   addrNew 和 addrTried地址集合
+	addrNew        [newBucketCount]map[string]*KnownAddress //key: 桶树编号 val:地址，缓存新地址
+	addrTried      [triedBucketCount]*list.List             //连接成功的地址
 	started        int32
 	shutdown       int32
 	wg             sync.WaitGroup
 	quit           chan struct{}
-	nTried         int
-	nNew           int
+	nTried         int //addrTried len
+	nNew           int //addrNew len
 	lamtx          sync.Mutex
 	localAddresses map[string]*localAddress
 	version        int
@@ -440,7 +440,7 @@ func (a *AddrManager) loadPeers() {
 }
 
 func (a *AddrManager) deserializePeers(filePath string) error {
-
+	//将peersFile文件中的数据反序列化成sam变量
 	_, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
 		return nil
@@ -467,7 +467,7 @@ func (a *AddrManager) deserializePeers(filePath string) error {
 	}
 
 	copy(a.key[:], sam.Key[:])
-
+	//将sam中的Addresses字段处理赋值给的addrIndex
 	for _, v := range sam.Addresses {
 		ka := new(KnownAddress)
 
@@ -500,7 +500,7 @@ func (a *AddrManager) deserializePeers(filePath string) error {
 		ka.lastsuccess = time.Unix(v.LastSuccess, 0)
 		a.addrIndex[NetAddressKey(ka.na)] = ka
 	}
-
+	//将sam中的NewBuckets字段处理赋值给的addrNew
 	for i := range sam.NewBuckets {
 		for _, val := range sam.NewBuckets[i] {
 			ka, ok := a.addrIndex[val]
@@ -516,6 +516,7 @@ func (a *AddrManager) deserializePeers(filePath string) error {
 			a.addrNew[i][val] = ka
 		}
 	}
+	//将sam中的TriedBuckets字段处理赋值给的addrTried
 	for i := range sam.TriedBuckets {
 		for _, val := range sam.TriedBuckets[i] {
 			ka, ok := a.addrIndex[val]

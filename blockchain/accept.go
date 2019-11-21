@@ -66,7 +66,7 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 	blockHeader := &block.MsgBlock().Header
 	newNode := newBlockNode(blockHeader, prevNode)
 	newNode.status = statusDataStored
-
+	// node可以认为是block的代表，使得block信息的查询更加快捷；index用于保存这些node
 	b.index.AddNode(newNode)
 	err = b.index.flushToDB()
 	if err != nil {
@@ -76,6 +76,7 @@ func (b *BlockChain) maybeAcceptBlock(block *btcutil.Block, flags BehaviorFlags)
 	// Connect the passed block to the chain while respecting proper chain
 	// selection according to the chain with the most proof of work.  This
 	// also handles validation of the transaction scripts.
+	// 通过maybeAcceptBlock的若干检查之后，真正地将block写入到区块链中
 	isMainChain, err := b.connectBestChain(newNode, block, flags)
 	if err != nil {
 		return false, err

@@ -1099,15 +1099,18 @@ func (b *BlockChain) connectBestChain(node *blockNode, block *btcutil.Block, fla
 	// We are extending the main (best) chain with a new block.  This is the
 	// most common case.
 	parentHash := &block.MsgBlock().Header.PrevBlock
+	// 处理 延长 main chain 这种情况
 	if parentHash.IsEqual(&b.bestChain.Tip().hash) {
 		// Skip checks if node has already been fully validated.
 		fastAdd = fastAdd || b.index.NodeStatus(node).KnownValid()
 
-		// Perform several checks to verify the block can be connected
-		// to the main chain without violating any rules and without
+		// Perform(执行) several checks to verify the block can be connected
+		// to the main chain without violating(违反) any rules and without
 		// actually connecting the block.
+		// view主要用来记录某个状态下的utxo的视图
 		view := NewUtxoViewpoint()
 		view.SetBestHash(parentHash)
+		// stxos主要用来记录当前区块花出去的utxo
 		stxos := make([]SpentTxOut, 0, countSpentOutputs(block))
 		if !fastAdd {
 			err := b.checkConnectBlock(node, block, view, &stxos)

@@ -137,8 +137,9 @@ func (b *BlockChain) processOrphans(hash *chainhash.Hash, flags BehaviorFlags) e
 // When no errors occurred during processing, the first return value indicates
 // whether or not the block is on the main chain and the second indicates
 // whether or not the block is an orphan.
-//
+// ☀️☀️☀️☀️☀️
 // This function is safe for concurrent access.
+//该函数完成了区块处理最主要的功能，包括：区块数据的验证、处理orphan区块、将区块插入到链中、基于新插入的区块判断是否需要reorganize最长链
 func (b *BlockChain) ProcessBlock(block *btcutil.Block, flags BehaviorFlags) (bool, bool, error) {
 	b.chainLock.Lock()
 	defer b.chainLock.Unlock()
@@ -216,6 +217,7 @@ func (b *BlockChain) ProcessBlock(block *btcutil.Block, flags BehaviorFlags) (bo
 	if err != nil {
 		return false, false, err
 	}
+	//如果prev不存在，则说明这是Orphan，存在Orphan字典中
 	if !prevHashExists {
 		log.Infof("Adding orphan block %v with parent %v", blockHash, prevHash)
 		b.addOrphanBlock(block)
@@ -223,8 +225,8 @@ func (b *BlockChain) ProcessBlock(block *btcutil.Block, flags BehaviorFlags) (bo
 		return false, true, nil
 	}
 
-	// The block has passed all context independent checks and appears sane
-	// enough to potentially accept it into the block chain.
+	// The block has passed all context independent(独立/dependent依赖) checks and appears sane
+	// enough to potentially（潜在的） accept it into the block chain. 将block加入到链中，并返回一个bool值标识该block是否在最长链中
 	isMainChain, err := b.maybeAcceptBlock(block, flags)
 	if err != nil {
 		return false, false, err
@@ -233,6 +235,8 @@ func (b *BlockChain) ProcessBlock(block *btcutil.Block, flags BehaviorFlags) (bo
 	// Accept any orphan blocks that depend on this block (they are
 	// no longer orphans) and repeat for those accepted blocks until
 	// there are no more.
+	// 尝试利用该block将之前的orphan串起来。具体而言，如果之前的block正好是因为缺少当前的这个block而被判别为了orphan（因为整个链断开了），
+	// 那么当当前这个block到来时，便可以将之前的orphan都串起来了。
 	err = b.processOrphans(blockHash, flags)
 	if err != nil {
 		return false, false, err

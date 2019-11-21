@@ -1317,7 +1317,7 @@ cleanup:
 }
 
 // inHandler handles all incoming messages for the peer.  It must be run as a
-// goroutine.
+// goroutine. ☀️☀️☀️☀️☀️
 func (p *Peer) inHandler() {
 	// The timer is stopped when a new message is received and reset after it
 	// is processed.
@@ -1441,7 +1441,7 @@ out:
 				p.cfg.Listeners.OnNotFound(p, msg)
 			}
 
-		case *wire.MsgGetData:
+		case *wire.MsgGetData: // gets the block data without header because it already had blockheader.
 			if p.cfg.Listeners.OnGetData != nil {
 				p.cfg.Listeners.OnGetData(p, msg)
 			}
@@ -1797,6 +1797,9 @@ out:
 // QueueMessage adds the passed bitcoin message to the peer send queue.
 //
 // This function is safe for concurrent access.
+// peer A  发送
+//  QueueMessageWithEncoding -> outputQueue 管道 -> Peer.queueHandler() -> queuePacket() -> sendQueue 管道 -> writeMessage() -> WriteMessageWithEncodingN()
+// peer B 收到
 func (p *Peer) QueueMessage(msg wire.Message, doneChan chan<- struct{}) {
 	p.QueueMessageWithEncoding(msg, doneChan, wire.BaseEncoding)
 }
@@ -2124,7 +2127,7 @@ func (p *Peer) negotiateOutboundProtocol() error {
 // start begins processing input and output messages.
 func (p *Peer) start() error {
 	log.Tracef("Starting peer %s", p)
-
+	//协商双方的协议版本，判断双方版本是否兼容
 	negotiateErr := make(chan error, 1)
 	go func() {
 		if p.inbound {
@@ -2149,11 +2152,11 @@ func (p *Peer) start() error {
 
 	// The protocol has been negotiated successfully so start processing input
 	// and output messages.
-	go p.stallHandler()
-	go p.inHandler()
-	go p.queueHandler()
-	go p.outHandler()
-	go p.pingHandler()
+	go p.stallHandler() //peer连接监控
+	go p.inHandler()    //接受其他节点发送的报文
+	go p.queueHandler() //需要发送的报文需由queueHandler处理后发送至其他节点
+	go p.outHandler()   //发送报文
+	go p.pingHandler()  //心跳检测
 
 	return nil
 }
@@ -2183,7 +2186,7 @@ func (p *Peer) AssociateConnection(conn net.Conn) {
 		}
 		p.na = na
 	}
-
+	//启动peer
 	go func() {
 		if err := p.start(); err != nil {
 			log.Debugf("Cannot start peer %v: %v", p, err)

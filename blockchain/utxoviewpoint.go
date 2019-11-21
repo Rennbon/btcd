@@ -526,10 +526,13 @@ func (view *UtxoViewpoint) fetchUtxos(db database.DB, outpoints map[wire.OutPoin
 // database as needed.  In particular, referenced entries that are earlier in
 // the block are added to the view and entries that are already in the view are
 // not modified.
+// 一个Block中的input来源分为2种，
+// 1. 来源于之前的block生成的output
+// 2. 来源于当前的block之前的transaction 生成的output
 func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *btcutil.Block) error {
 	// Build a map of in-flight transactions because some of the inputs in
 	// this block could be referencing other transactions earlier in this
-	// block which are not yet in the chain.
+	// block which are not yet in the chain. （加速查询）
 	txInFlight := map[chainhash.Hash]int{}
 	transactions := block.Transactions()
 	for i, tx := range transactions {
@@ -539,6 +542,7 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *btcutil.Block)
 	// Loop through all of the transaction inputs (except for the coinbase
 	// which has no inputs) collecting them into sets of what is needed and
 	// what is already known (in-flight).
+	// 记录第一种来源的input对应的OutPoint
 	neededSet := make(map[wire.OutPoint]struct{})
 	for i, tx := range transactions[1:] {
 		for _, txIn := range tx.MsgTx().TxIn {

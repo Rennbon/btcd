@@ -15,11 +15,11 @@ import (
 type KnownAddress struct {
 	na          *wire.NetAddress
 	srcAddr     *wire.NetAddress
-	attempts    int
-	lastattempt time.Time
-	lastsuccess time.Time
+	attempts    int       //连接次数
+	lastattempt time.Time //最后一次连接时间
+	lastsuccess time.Time //最后一次成功连接时间
 	tried       bool
-	refs        int // reference count of new buckets
+	refs        int // reference count of new buckets  ，节点被连接次数
 }
 
 // NetAddress returns the underlying wire.NetAddress associated with the
