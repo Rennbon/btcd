@@ -218,6 +218,7 @@ func (view *UtxoViewpoint) AddTxOuts(tx *btcutil.Tx, blockHeight int32) {
 // view does not contain the required utxos.
 func (view *UtxoViewpoint) connectTransaction(tx *btcutil.Tx, blockHeight int32, stxos *[]SpentTxOut) error {
 	// Coinbase transactions don't have any inputs to spend.
+	// 则直接将该transaction对应的output加入到view变量中，stxos不变
 	if IsCoinBase(tx) {
 		// Add the transaction's outputs as available utxos.
 		view.AddTxOuts(tx, blockHeight)
@@ -544,6 +545,8 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *btcutil.Block)
 	// what is already known (in-flight).
 	// 记录第一种来源的input对应的OutPoint
 	neededSet := make(map[wire.OutPoint]struct{})
+	// 逐个处理每个非coinbase的transaction。对于每个transaction中的每个input，首先判断该input的来源是哪种情况。
+	// 若是第2种情况，则基于当前区块中相应的transaction (originalTx)，利用AddTxOuts函数构建output并加入到view变量中
 	for i, tx := range transactions[1:] {
 		for _, txIn := range tx.MsgTx().TxIn {
 			// It is acceptable for a transaction input to reference
@@ -575,7 +578,7 @@ func (view *UtxoViewpoint) fetchInputUtxos(db database.DB, block *btcutil.Block)
 			neededSet[txIn.PreviousOutPoint] = struct{}{}
 		}
 	}
-
+	// 将OutPoint对应的output加入到view变量中。因为需要从数据库中查询，所以需要传入db参数。
 	// Request the input utxos from the database.
 	return view.fetchUtxosMain(db, neededSet)
 }
